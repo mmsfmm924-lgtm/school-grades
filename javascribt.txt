@@ -1,0 +1,134 @@
+const teacherPass = document.getElementById("teacherPass");
+const year = document.getElementById("year");
+const classSelect = document.getElementById("class");
+const seat = document.getElementById("seat");
+const nameInput = document.getElementById("name");
+const subject = document.getElementById("subject");
+const grade = document.getElementById("grade");
+const search = document.getElementById("search");
+const subjectFilter = document.getElementById("subjectFilter");
+const tbody = document.getElementById("tbody");
+const stats = document.getElementById("stats");
+const studentSearch = document.getElementById("studentSearch");
+const studentTable = document.getElementById("studentTable");
+const chartCanvas = document.getElementById("chart");
+
+let records = JSON.parse(localStorage.getItem("records")) || [];
+const PASSWORD = "1234";
+let chart;
+
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function enterTeacher(){ show("loginScreen"); }
+function enterStudent(){ show("studentApp"); studentView(); }
+
+function checkPassword(){
+  if(teacherPass.value === PASSWORD){
+    show("teacherApp");
+    render();
+  } else alert("كلمة المرور خطأ");
+}
+
+function logout(){ show("mainScreen"); }
+
+function addRecord(){
+  if(!seat.value || !nameInput.value || !subject.value || !grade.value) return;
+
+  records.push({
+    year: year.value,
+    class: classSelect.value,
+    seat: seat.value,
+    name: nameInput.value,
+    subject: subject.value,
+    grade: parseFloat(grade.value)
+  });
+
+  localStorage.setItem("records", JSON.stringify(records));
+  clearInputs();
+  render();
+}
+
+function clearInputs(){
+  seat.value = "";
+  nameInput.value = "";
+  subject.value = "";
+  grade.value = "";
+}
+
+function render(){
+  let data = [...records];
+  const s = search.value.toLowerCase();
+  const subF = subjectFilter ? subjectFilter.value.toLowerCase() : "";
+
+  if(s) data = data.filter(r => r.name.toLowerCase().includes(s) || r.seat.includes(s));
+  if(subF) data = data.filter(r => r.subject.toLowerCase().includes(subF));
+
+  tbody.innerHTML = "";
+  data.forEach((r,i)=>{
+    const status = r.grade >= 50 ? '<span class="pass">ناجح</span>' : '<span class="fail">راسب</span>';
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.seat}</td>
+        <td>${r.name}</td>
+        <td>${r.subject}</td>
+        <td contenteditable onblur="edit(${i}, this.innerText)">${r.grade}</td>
+        <td>${status}</td>
+        <td><button onclick="del(${i})">X</button></td>
+      </tr>`;
+  });
+
+  stats.innerText = `عدد السجلات: ${data.length}`;
+
+  // رسم الإحصائيات
+  const grades = data.map(r => r.grade);
+  if(chart) chart.destroy();
+  chart = new Chart(chartCanvas, {
+    type: 'bar',
+    data: {
+      labels: data.map(r => r.name),
+      datasets: [{
+        label: 'الدرجة',
+        data: grades,
+        backgroundColor: '#28a745'
+      }]
+    },
+    options: { responsive:true, scales:{y:{beginAtZero:true}} }
+  });
+}
+
+function edit(i,val){
+  records[i].grade = parseFloat(val) || records[i].grade;
+  localStorage.setItem("records", JSON.stringify(records));
+  render();
+}
+
+function del(i){
+  records.splice(i,1);
+  localStorage.setItem("records", JSON.stringify(records));
+  render();
+}
+
+function studentView(){
+  const q = studentSearch.value.toLowerCase();
+  const data = records.filter(r => r.name.toLowerCase().includes(q) || r.seat.includes(q));
+  studentTable.innerHTML = "";
+  data.forEach(r=>{
+    const status = r.grade >= 50 ? "ناجح" : "راسب";
+    studentTable.innerHTML += `
+      <tr>
+        <td>${r.subject}</td>
+        <td>${r.grade}</td>
+        <td>${status}</td>
+      </tr>`;
+  });
+}
+
+function printRecords(){
+  const w = window.open("", "_blank");
+  w.document.write("<h2>كشوف الطلاب</h2>");
+  w.document.write(document.querySelector("#tbody").parentElement.outerHTML);
+  w.print();
+}
