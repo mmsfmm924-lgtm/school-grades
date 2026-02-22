@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مدرسة ثانوية العراق النموذجية</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="script.js" defer></script>
+</head>
+<body>
+
+<div id="mainScreen" class="screen active">
+  <div class="container">
+    <h1>مدرسة ثانوية العراق النموذجية</h1>
+    <p>أهلاً بكم في نظام إدارة الطلاب</p>
+    <div class="buttons">
+      <button onclick="enterTeacher()">تسجيل دخول المدرس</button>
+      <button onclick="enterStudent()">تسجيل دخول الطالب</button>
+    </div>
+  </div>
+</div>
+
+<div id="loginScreen" class="screen">
+  <div class="container">
+    <h2>🔐 كلمة مرور المدرس</h2>
+    <input type="password" id="teacherPass" placeholder="ادخل كلمة المرور">
+    <div class="buttons">
+      <button onclick="checkPassword()">دخول</button>
+      <button onclick="logout()">رجوع</button>
+    </div>
+  </div>
+</div>
+
+<div id="teacherApp" class="screen">
+  <div class="container">
+    <h2>لوحة المدرس</h2>
+    <input type="text" id="year" placeholder="السنة">
+    <input type="text" id="class" placeholder="الصف">
+    <input type="text" id="seat" placeholder="رقم المقعد">
+    <input type="text" id="name" placeholder="اسم الطالب">
+    <input type="text" id="subject" placeholder="المادة">
+    <input type="number" id="grade" placeholder="الدرجة">
+    
+    <div class="buttons">
+      <button onclick="addRecord()">إضافة سجل</button>
+      <button onclick="clearInputs()">تفريغ الحقول</button>
+    </div>
+
+    <input type="text" id="search" placeholder="بحث باسم الطالب أو المقعد" onkeyup="render()">
+    <select id="subjectFilter" onchange="render()">
+      <option value="">كل المواد</option>
+      <option value="رياضيات">رياضيات</option>
+      <option value="علوم">علوم</option>
+      <option value="إنكليزي">إنكليزي</option>
+    </select>
+
+    <p id="stats">عدد السجلات: 0</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>رقم المقعد</th>
+          <th>الاسم</th>
+          <th>المادة</th>
+          <th>الدرجة</th>
+          <th>الحالة</th>
+          <th>حذف</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+
+    <canvas id="chart" width="400" height="200"></canvas>
+    <button onclick="printRecords()">طباعة</button>
+    <button onclick="logout()">خروج</button>
+  </div>
+</div>
+
+<div id="studentApp" class="screen">
+  <div class="container">
+    <h2>واجهة الطالب</h2>
+    <input type="text" id="studentSearch" placeholder="ابحث باسمك أو رقم مقعدك" onkeyup="studentView()">
+    <table>
+      <thead>
+        <tr>
+          <th>المادة</th>
+          <th>الدرجة</th>
+          <th>الحالة</th>
+        </tr>
+      </thead>
+      <tbody id="studentTable"></tbody>
+    </table>
+    <button onclick="logout()">رجوع</button>
+  </div>
+</div>
+
+</body>
+</html>

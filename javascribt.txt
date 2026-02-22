@@ -1,134 +1,158 @@
+// بيانات الطلاب (مؤقتًا باستخدام localStorage)
+let students = JSON.parse(localStorage.getItem("students") || "[]");
+
+// شاشات
+const mainScreen = document.getElementById("mainScreen");
+const loginScreen = document.getElementById("loginScreen");
+const teacherApp = document.getElementById("teacherApp");
+const studentApp = document.getElementById("studentApp");
+
+// مدخلات
 const teacherPass = document.getElementById("teacherPass");
-const year = document.getElementById("year");
-const classSelect = document.getElementById("class");
-const seat = document.getElementById("seat");
-const nameInput = document.getElementById("name");
-const subject = document.getElementById("subject");
-const grade = document.getElementById("grade");
-const search = document.getElementById("search");
-const subjectFilter = document.getElementById("subjectFilter");
 const tbody = document.getElementById("tbody");
-const stats = document.getElementById("stats");
-const studentSearch = document.getElementById("studentSearch");
 const studentTable = document.getElementById("studentTable");
-const chartCanvas = document.getElementById("chart");
+const searchInput = document.getElementById("search");
+const subjectFilter = document.getElementById("subjectFilter");
 
-let records = JSON.parse(localStorage.getItem("records")) || [];
+// كلمة مرور المدرس
 const PASSWORD = "1234";
-let chart;
 
-function show(id){
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+// دوال التنقل بين الشاشات
+function showScreen(screen) {
+  [mainScreen, loginScreen, teacherApp, studentApp].forEach(s => s.classList.remove("active"));
+  screen.classList.add("active");
 }
 
-function enterTeacher(){ show("loginScreen"); }
-function enterStudent(){ show("studentApp"); studentView(); }
+function enterTeacher() { showScreen(loginScreen); }
+function enterStudent() { showScreen(studentApp); }
+function logout() { showScreen(mainScreen); }
 
-function checkPassword(){
-  if(teacherPass.value === PASSWORD){
-    show("teacherApp");
+// التحقق من كلمة المرور
+function checkPassword() {
+  if (teacherPass.value === PASSWORD) {
+    showScreen(teacherApp);
     render();
-  } else alert("كلمة المرور خطأ");
+    teacherPass.value = "";
+  } else {
+    alert("كلمة المرور خاطئة!");
+  }
 }
 
-function logout(){ show("mainScreen"); }
+// إضافة سجل طالب
+function addRecord() {
+  const year = document.getElementById("year").value;
+  const className = document.getElementById("class").value;
+  const seat = document.getElementById("seat").value;
+  const name = document.getElementById("name").value;
+  const subject = document.getElementById("subject").value;
+  const grade = Number(document.getElementById("grade").value);
 
-function addRecord(){
-  if(!seat.value || !nameInput.value || !subject.value || !grade.value) return;
+  if(!year || !className || !seat || !name || !subject || !grade) {
+    alert("يرجى ملء جميع الحقول!");
+    return;
+  }
 
-  records.push({
-    year: year.value,
-    class: classSelect.value,
-    seat: seat.value,
-    name: nameInput.value,
-    subject: subject.value,
-    grade: parseFloat(grade.value)
-  });
-
-  localStorage.setItem("records", JSON.stringify(records));
+  students.push({ year, className, seat, name, subject, grade });
+  localStorage.setItem("students", JSON.stringify(students));
   clearInputs();
   render();
 }
 
-function clearInputs(){
-  seat.value = "";
-  nameInput.value = "";
-  subject.value = "";
-  grade.value = "";
+// مسح الحقول
+function clearInputs() {
+  ["year","class","seat","name","subject","grade"].forEach(id => document.getElementById(id).value = "");
 }
 
-function render(){
-  let data = [...records];
-  const s = search.value.toLowerCase();
-  const subF = subjectFilter ? subjectFilter.value.toLowerCase() : "";
-
-  if(s) data = data.filter(r => r.name.toLowerCase().includes(s) || r.seat.includes(s));
-  if(subF) data = data.filter(r => r.subject.toLowerCase().includes(subF));
-
+// عرض بيانات المدرس
+function render() {
+  const filterText = searchInput.value.toLowerCase();
+  const subject = subjectFilter.value;
   tbody.innerHTML = "";
-  data.forEach((r,i)=>{
-    const status = r.grade >= 50 ? '<span class="pass">ناجح</span>' : '<span class="fail">راسب</span>';
-    tbody.innerHTML += `
-      <tr>
-        <td>${r.seat}</td>
-        <td>${r.name}</td>
-        <td>${r.subject}</td>
-        <td contenteditable onblur="edit(${i}, this.innerText)">${r.grade}</td>
-        <td>${status}</td>
-        <td><button onclick="del(${i})">X</button></td>
-      </tr>`;
+
+  let filtered = students.filter(s => 
+    (s.name.toLowerCase().includes(filterText) || s.seat.includes(filterText)) &&
+    (subject === "" || s.subject === subject)
+  );
+
+  filtered.forEach((s, index) => {
+    const status = s.grade >= 50 ? "pass" : "fail";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.seat}</td>
+      <td>${s.name}</td>
+      <td>${s.subject}</td>
+      <td>${s.grade}</td>
+      <td class="${status}">${status.toUpperCase()}</td>
+      <td><button onclick="deleteRecord(${index})">حذف</button></td>
+    `;
+    tbody.appendChild(tr);
   });
 
-  stats.innerText = `عدد السجلات: ${data.length}`;
+  document.getElementById("stats").textContent = `عدد السجلات: ${filtered.length}`;
+  renderChart(filtered);
+}
 
-  // رسم الإحصائيات
-  const grades = data.map(r => r.grade);
+// حذف سجل
+function deleteRecord(index) {
+  if(confirm("هل أنت متأكد من الحذف؟")) {
+    students.splice(index,1);
+    localStorage.setItem("students", JSON.stringify(students));
+    render();
+  }
+}
+
+// عرض بيانات الطالب
+function studentView() {
+  const filterText = document.getElementById("studentSearch").value.toLowerCase();
+  studentTable.innerHTML = "";
+
+  let filtered = students.filter(s => 
+    s.name.toLowerCase().includes(filterText) || s.seat.includes(filterText)
+  );
+
+  filtered.forEach(s => {
+    const status = s.grade >= 50 ? "pass" : "fail";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.subject}</td>
+      <td>${s.grade}</td>
+      <td class="${status}">${status.toUpperCase()}</td>
+    `;
+    studentTable.appendChild(tr);
+  });
+}
+
+// رسم البياني
+let chart;
+function renderChart(data) {
+  const ctx = document.getElementById('chart').getContext('2d');
+  const subjects = [...new Set(data.map(s=>s.subject))];
+  const averages = subjects.map(sub => {
+    const grades = data.filter(s=>s.subject===sub).map(s=>s.grade);
+    return grades.reduce((a,b)=>a+b,0)/grades.length;
+  });
+
   if(chart) chart.destroy();
-  chart = new Chart(chartCanvas, {
+
+  chart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: data.map(r => r.name),
+      labels: subjects,
       datasets: [{
-        label: 'الدرجة',
-        data: grades,
+        label: 'متوسط الدرجة لكل مادة',
+        data: averages,
         backgroundColor: '#28a745'
       }]
     },
-    options: { responsive:true, scales:{y:{beginAtZero:true}} }
+    options: { responsive:true, plugins:{ legend:{ display:false } } }
   });
 }
 
-function edit(i,val){
-  records[i].grade = parseFloat(val) || records[i].grade;
-  localStorage.setItem("records", JSON.stringify(records));
-  render();
-}
-
-function del(i){
-  records.splice(i,1);
-  localStorage.setItem("records", JSON.stringify(records));
-  render();
-}
-
-function studentView(){
-  const q = studentSearch.value.toLowerCase();
-  const data = records.filter(r => r.name.toLowerCase().includes(q) || r.seat.includes(q));
-  studentTable.innerHTML = "";
-  data.forEach(r=>{
-    const status = r.grade >= 50 ? "ناجح" : "راسب";
-    studentTable.innerHTML += `
-      <tr>
-        <td>${r.subject}</td>
-        <td>${r.grade}</td>
-        <td>${status}</td>
-      </tr>`;
-  });
-}
-
-function printRecords(){
-  const w = window.open("", "_blank");
-  w.document.write("<h2>كشوف الطلاب</h2>");
-  w.document.write(document.querySelector("#tbody").parentElement.outerHTML);
-  w.print();
+// طباعة السجلات
+function printRecords() {
+  let printWindow = window.open("", "", "width=800,height=600");
+  printWindow.document.write("<h1>سجلات الطلاب</h1>");
+  printWindow.document.write(document.getElementById("tbody").outerHTML);
+  printWindow.print();
+  printWindow.close();
 }
